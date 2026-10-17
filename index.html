@@ -3,17 +3,18 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>OPERATIVE: ZERO 🎯 - 3D FPS Ragdoll</title>
+  <title>SURVIVOR ROYALE 🏝️ - 8-Player Battlegrounds</title>
 
-  <!-- Three.js & PeerJS via jsDelivr CDN yang stabil & cepat -->
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+  <!-- PeerJS P2P Networking & Confetti Juara -->
   <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
   <style>
     :root {
       --primary: #f59e0b;
       --accent: #ef4444;
-      --cyan: #06b6d4;
+      --safe: #10b981;
+      --panel: #0f172a;
     }
 
     * {
@@ -22,187 +23,136 @@
       -webkit-user-select: none;
       margin: 0;
       padding: 0;
-      font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+      font-family: 'Segoe UI', system-ui, sans-serif;
     }
 
-    body, html {
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      background: #090d16;
+    body {
+      background: #022c22;
       color: #fff;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      touch-action: none;
     }
 
-    #webgl-container {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      z-index: 1;
-    }
-
-    /* Crosshair Titik Tengah */
-    #crosshair {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 14px;
-      height: 14px;
-      pointer-events: none;
-      z-index: 10;
-    }
-    #crosshair::before, #crosshair::after {
-      content: '';
-      position: absolute;
-      background: #22c55e;
-      box-shadow: 0 0 5px #22c55e;
-    }
-    #crosshair::before { top: 6px; left: 0; width: 14px; height: 2px; }
-    #crosshair::after { top: 0; left: 6px; width: 2px; height: 14px; }
-
-    /* Indikator Hit / Tembakan Kena */
-    #hitmarker {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%) rotate(45deg);
-      width: 22px;
-      height: 22px;
-      pointer-events: none;
-      opacity: 0;
-      transition: opacity 0.05s ease-out;
-      z-index: 11;
-    }
-    #hitmarker::before, #hitmarker::after {
-      content: '';
-      position: absolute;
-      background: #ff0055;
-    }
-    #hitmarker::before { top: 10px; left: 0; width: 22px; height: 2px; }
-    #hitmarker::after { top: 0; left: 10px; width: 2px; height: 22px; }
-
-    /* Efek Darah di Tepi Layar */
-    #damage-vignette {
+    canvas {
       position: absolute;
       inset: 0;
-      pointer-events: none;
-      box-shadow: inset 0 0 0 rgba(239, 68, 68, 0);
-      transition: box-shadow 0.15s ease;
-      z-index: 9;
+      width: 100%;
+      height: 100%;
+      background: #15803d;
     }
 
-    /* HUD FPS */
+    /* HUD In-Game */
     #hud {
       position: absolute;
       inset: 0;
       pointer-events: none;
-      z-index: 8;
+      z-index: 10;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      padding: 20px;
+      padding: 16px;
     }
 
-    .hud-card {
-      background: rgba(15, 23, 42, 0.75);
+    .hud-box {
+      background: rgba(15, 23, 42, 0.85);
       border: 1px solid rgba(255, 255, 255, 0.15);
-      padding: 10px 20px;
-      border-radius: 12px;
-      backdrop-filter: blur(8px);
+      padding: 8px 16px;
+      border-radius: 10px;
+      font-weight: 800;
+      backdrop-filter: blur(6px);
     }
 
-    .killfeed {
+    .bar-container {
+      width: 160px;
+      height: 12px;
+      background: #1e293b;
+      border-radius: 6px;
+      overflow: hidden;
+      margin-top: 4px;
+    }
+    .bar-fill { height: 100%; transition: width 0.15s ease; }
+
+    #killfeed {
+      position: absolute;
+      top: 65px;
+      right: 16px;
+      width: 240px;
       display: flex;
       flex-direction: column;
       gap: 6px;
-      font-size: 0.85rem;
-      font-weight: 700;
+      font-size: 0.8rem;
     }
-    .kill-msg {
+    .kill-item {
       background: rgba(0, 0, 0, 0.7);
       border-left: 3px solid var(--accent);
-      padding: 4px 10px;
+      padding: 4px 8px;
       border-radius: 4px;
       animation: fadeOut 4s forwards;
     }
 
     /* Virtual Mobile Controls */
-    #mobile-controls {
+    #touch-controls {
       position: absolute;
       inset: 0;
       pointer-events: none;
       z-index: 12;
     }
-    .touch-btn {
+    .joy-stick {
       position: absolute;
-      background: rgba(255, 255, 255, 0.18);
-      border: 2px solid rgba(255, 255, 255, 0.4);
+      bottom: 30px;
+      width: 130px;
+      height: 130px;
       border-radius: 50%;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      font-weight: 900;
+      background: rgba(255, 255, 255, 0.08);
+      border: 2px dashed rgba(255, 255, 255, 0.25);
       pointer-events: auto;
-      touch-action: none;
     }
-    .touch-btn:active { background: rgba(255, 255, 255, 0.4); }
-    #btn-mobile-fire { right: 30px; bottom: 40px; width: 75px; height: 75px; background: rgba(239,68,68,0.35); border-color: var(--accent); font-size: 1.2rem; }
-    #btn-mobile-ads { right: 120px; bottom: 45px; width: 60px; height: 60px; font-size: 0.85rem; }
-
-    /* Notifikasi Kunci Mouse */
-    #desktop-hint {
+    #move-joy { left: 25px; }
+    #aim-joy { right: 25px; }
+    .nub {
       position: absolute;
-      top: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(0, 0, 0, 0.65);
-      border: 1px solid #475569;
-      padding: 8px 16px;
-      border-radius: 20px;
-      font-size: 0.85rem;
-      font-weight: 700;
-      color: #94a3b8;
-      pointer-events: none;
-      z-index: 15;
+      top: 50%; left: 50%;
+      width: 44px; height: 44px;
+      border-radius: 50%;
+      background: var(--primary);
+      transform: translate(-50%, -50%);
     }
 
-    /* Modal / Layar Menu & Lobby */
+    /* Screen Modals */
     .screen {
       position: absolute;
       inset: 0;
-      background: rgba(9, 13, 22, 0.92);
-      backdrop-filter: blur(10px);
+      background: rgba(2, 6, 23, 0.92);
+      backdrop-filter: blur(8px);
       display: flex;
       justify-content: center;
       align-items: center;
       z-index: 50;
     }
-
-    .hidden {
-      display: none !important;
-    }
+    .hidden { display: none !important; }
 
     .card {
-      background: #111827;
-      border: 2px solid #374151;
+      background: var(--panel);
+      border: 2px solid #334155;
       border-radius: 20px;
       padding: 2.2rem;
       width: 90%;
       max-width: 420px;
       text-align: center;
-      box-shadow: 0 0 35px rgba(0,0,0,0.8);
+      box-shadow: 0 0 40px rgba(0,0,0,0.8);
     }
 
     h1 {
-      font-size: 2.2rem;
+      font-size: 2.3rem;
       font-weight: 900;
       letter-spacing: 2px;
-      color: #fff;
-      text-shadow: 0 0 15px var(--primary);
+      color: var(--primary);
+      text-shadow: 0 0 15px rgba(245, 158, 11, 0.4);
     }
-
     .tagline {
       font-size: 0.85rem;
       color: #94a3b8;
@@ -214,8 +164,8 @@
       width: 100%;
       padding: 12px 14px;
       border-radius: 10px;
-      border: 2px solid #374151;
-      background: #030712;
+      border: 2px solid #334155;
+      background: #020617;
       color: #fff;
       font-size: 1rem;
       font-weight: 700;
@@ -226,9 +176,9 @@
 
     .btn {
       width: 100%;
-      padding: 13px;
+      padding: 14px;
       border: none;
-      border-radius: 10px;
+      border-radius: 12px;
       font-size: 1rem;
       font-weight: 800;
       letter-spacing: 1.5px;
@@ -239,8 +189,8 @@
     }
     .btn:active { transform: scale(0.97); }
     .btn-gold { background: var(--primary); color: #000; box-shadow: 0 0 15px rgba(245, 158, 11, 0.3); }
-    .btn-dark { background: #1f2937; color: #fff; border: 1px solid #4b5563; }
-    .btn-accent { background: var(--accent); color: #fff; box-shadow: 0 0 15px rgba(239, 68, 68, 0.3); }
+    .btn-accent { background: var(--accent); color: #fff; }
+    .btn-dark { background: #1e293b; color: #fff; border: 1px solid #475569; }
 
     @keyframes fadeOut {
       0% { opacity: 1; transform: translateX(20px); }
@@ -252,70 +202,79 @@
 </head>
 <body>
 
-  <!-- 3D Canvas Container -->
-  <div id="webgl-container"></div>
-  <div id="damage-vignette"></div>
-  <div id="crosshair" class="hidden"></div>
-  <div id="hitmarker"></div>
-  <div id="desktop-hint" class="hidden">KLIK LAYAR UNTUK MENGUNCI BIDIKAN MOUSE [ESC UNTUK KELUAR]</div>
+  <canvas id="gameCanvas"></canvas>
 
   <!-- HUD In-Game -->
   <div id="hud" class="hidden">
     <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-      <div class="hud-card" style="font-size:1rem; font-weight:800;" id="hud-score">ELIMINASI: 0</div>
-      <div class="killfeed" id="killfeed-box"></div>
+      <div class="hud-box">
+        <div style="font-size:0.75rem; color:#94a3b8;">DARAH (HP)</div>
+        <div class="bar-container"><div class="bar-fill" id="hp-bar" style="background:#22c55e; width:100%;"></div></div>
+        <div style="font-size:0.75rem; color:#94a3b8; margin-top:6px;">ARMOR (VEST)</div>
+        <div class="bar-container"><div class="bar-fill" id="armor-bar" style="background:#0284c7; width:0%;"></div></div>
+      </div>
+      <div class="hud-box" style="text-align:right;">
+        <div style="font-size:1.1rem; color:var(--primary);" id="alive-txt">ALIVE: 8</div>
+        <div style="font-size:0.85rem; color:#94a3b8;" id="kill-txt">KILLS: 0</div>
+      </div>
     </div>
+
+    <div id="killfeed"></div>
+
     <div style="display:flex; justify-content:space-between; align-items:flex-end;">
-      <div class="hud-card">
-        <div style="font-size:0.75rem; color:#94a3b8; font-weight:800;">STATUS KESEHATAN</div>
-        <div style="font-size:2rem; font-weight:900; color:#22c55e;" id="hud-hp">100</div>
-      </div>
-      <div class="hud-card" style="text-align:right;">
-        <div style="font-size:0.75rem; color:#94a3b8; font-weight:800;">PELURU</div>
-        <div style="font-size:2rem; font-weight:900; color:var(--primary);" id="hud-ammo">30 <span style="font-size:1rem; color:#64748b;">/ ∞</span></div>
-      </div>
+      <div class="hud-box" id="weapon-badge">SENJATA: 👊 TINJU</div>
+      <div class="hud-box" style="color:var(--accent);" id="zone-badge">ZONA AMAN: 100%</div>
     </div>
   </div>
 
-  <!-- Virtual Mobile Buttons -->
-  <div id="mobile-controls" class="hidden">
-    <div class="touch-btn" id="btn-mobile-ads">ADS</div>
-    <div class="touch-btn" id="btn-mobile-fire">🔥</div>
+  <!-- Virtual Mobile Joysticks -->
+  <div id="touch-controls" class="hidden">
+    <div class="joy-stick" id="move-joy"><div class="nub" id="move-nub"></div></div>
+    <div class="joy-stick" id="aim-joy"><div class="nub" id="aim-nub" style="background:var(--accent);"></div></div>
   </div>
 
-  <!-- Layar Menu Utama -->
+  <!-- Menu Utama -->
   <div id="menu-screen" class="screen">
     <div class="card">
-      <h1>OPERATIVE: ZERO</h1>
-      <p class="tagline">3D TACTICAL RAGDOLL FPS</p>
+      <h1>SURVIVOR ROYALE</h1>
+      <p class="tagline">8-PLAYER SURVIVAL BATTLEGROUND</p>
 
-      <input type="text" id="nickname-input" placeholder="NAMA OPERATIF..." maxlength="12">
+      <input type="text" id="nickname" placeholder="NAMA SURVIVOR..." maxlength="10">
 
       <button class="btn btn-accent" id="btn-solo">⚡ MAIN SOLO LANGSUNG (VS 7 BOTS)</button>
       <div style="margin: 12px 0; color:#64748b; font-weight:800;">— ATAU MULTIPLAYER —</div>
       <button class="btn btn-gold" id="btn-host">BUAT ROOM (HOST)</button>
-      <input type="text" id="room-code-input" placeholder="MASUKKAN KODE ROOM..." style="text-transform:uppercase; margin-top:10px;">
+      <input type="text" id="room-input" placeholder="KODE ROOM..." style="text-transform:uppercase; margin-top:10px;">
       <button class="btn btn-dark" id="btn-join">GABUNG ROOM</button>
     </div>
   </div>
 
-  <!-- Layar Ruang Tunggu Lobby -->
+  <!-- Lobby Tunggu -->
   <div id="lobby-screen" class="screen hidden">
     <div class="card">
-      <h2>RUANG TAKTIS</h2>
-      <p style="color:#94a3b8; font-size:0.85rem; margin-top:4px;">KODE ROOM UNTUK TEMANMU:</p>
-      <div id="display-room-id" style="font-size:2.2rem; font-weight:900; color:var(--primary); letter-spacing:4px; margin: 10px 0;">----</div>
-      
-      <div id="lobby-roster" style="text-align:left; background:#030712; padding:10px; border-radius:10px; margin-bottom:15px; max-height:140px; overflow-y:auto;"></div>
+      <h2>LOBBY TEMPUR</h2>
+      <p style="color:#94a3b8; font-size:0.85rem; margin-top:4px;">KODE ROOM UNTUK TEMAN:</p>
+      <div id="room-id-txt" style="font-size:2.2rem; font-weight:900; color:var(--primary); letter-spacing:4px; margin: 10px 0;">----</div>
 
-      <button class="btn btn-gold hidden" id="btn-start-match">LUNCURKAN PERTEMPURAN! 🏁</button>
-      <p id="host-wait-msg" style="color:#94a3b8; font-size:0.85rem;">Menunggu Host meluncurkan misi...</p>
+      <div id="roster-box" style="text-align:left; background:#020617; padding:10px; border-radius:10px; margin-bottom:15px; max-height:140px; overflow-y:auto;"></div>
+
+      <button class="btn btn-gold hidden" id="btn-start">TERJUN KE PULAU! 🪂</button>
+      <p id="wait-msg" style="color:#94a3b8; font-size:0.85rem;">Menunggu Host memulai...</p>
+    </div>
+  </div>
+
+  <!-- Game Over Screen -->
+  <div id="winner-screen" class="screen hidden">
+    <div class="card">
+      <h1 id="win-title" style="color:var(--primary);">WINNER WINNER!</h1>
+      <p id="win-sub" style="margin:10px 0 20px; color:#94a3b8;">CHICKEN DINNER 🍗</p>
+      <button class="btn btn-gold" onclick="location.reload()">MAIN LAGI</button>
     </div>
   </div>
 
   <script>
     /* ==========================================================
-       1. SYNTHESIS AUDIO (Web Audio API Tanpa File Eksternal)
+       1. SYNTHESIS AUDIO (Web Audio API Mandiri)
        ========================================================== */
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
     let actx = null;
@@ -325,604 +284,601 @@
       if (actx.state === 'suspended') actx.resume();
     }
 
-    function playGunshot() {
+    function playSound(type) {
       if (!actx) return;
       const osc = actx.createOscillator();
       const gain = actx.createGain();
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(300, actx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(30, actx.currentTime + 0.15);
-      gain.gain.setValueAtTime(0.5, actx.currentTime);
-      gain.gain.linearRampToValueAtTime(0.01, actx.currentTime + 0.15);
-      osc.connect(gain);
-      gain.connect(actx.destination);
-      osc.start();
-      osc.stop(actx.currentTime + 0.15);
-    }
 
-    function playHeadshotDing() {
-      if (!actx) return;
-      const osc = actx.createOscillator();
-      const gain = actx.createGain();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(1400, actx.currentTime);
-      gain.gain.setValueAtTime(0.35, actx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.01, actx.currentTime + 0.3);
-      osc.connect(gain);
-      gain.connect(actx.destination);
-      osc.start();
-      osc.stop(actx.currentTime + 0.3);
-    }
-
-    function playHitSound() {
-      if (!actx) return;
-      const osc = actx.createOscillator();
-      const gain = actx.createGain();
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(220, actx.currentTime);
-      osc.frequency.linearRampToValueAtTime(80, actx.currentTime + 0.08);
-      gain.gain.setValueAtTime(0.3, actx.currentTime);
-      gain.gain.linearRampToValueAtTime(0, actx.currentTime + 0.08);
-      osc.connect(gain);
-      gain.connect(actx.destination);
-      osc.start();
-      osc.stop(actx.currentTime + 0.08);
+      if (type === 'punch') {
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(140, actx.currentTime);
+        osc.frequency.linearRampToValueAtTime(40, actx.currentTime + 0.1);
+        gain.gain.setValueAtTime(0.4, actx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.01, actx.currentTime + 0.1);
+        osc.connect(gain); gain.connect(actx.destination);
+        osc.start(); osc.stop(actx.currentTime + 0.1);
+      } else if (type === 'shotgun') {
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(120, actx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(25, actx.currentTime + 0.25);
+        gain.gain.setValueAtTime(0.7, actx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.01, actx.currentTime + 0.25);
+        osc.connect(gain); gain.connect(actx.destination);
+        osc.start(); osc.stop(actx.currentTime + 0.25);
+      } else if (type === 'rifle') {
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(320, actx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(50, actx.currentTime + 0.12);
+        gain.gain.setValueAtTime(0.4, actx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.01, actx.currentTime + 0.12);
+        osc.connect(gain); gain.connect(actx.destination);
+        osc.start(); osc.stop(actx.currentTime + 0.12);
+      } else if (type === 'loot') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(500, actx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(850, actx.currentTime + 0.1);
+        gain.gain.setValueAtTime(0.3, actx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.01, actx.currentTime + 0.1);
+        osc.connect(gain); gain.connect(actx.destination);
+        osc.start(); osc.stop(actx.currentTime + 0.1);
+      }
     }
 
     /* ==========================================================
-       2. THREE.JS SCENE, LIGHTING, DAN ARENA TAKTIS
+       2. DUNIA GAME & ITEM DROPS
        ========================================================== */
-    const container = document.getElementById('webgl-container');
-    const scene = new THREE.Scene();
-    scene.background = new THREE.Color('#090d16');
-    scene.fog = new THREE.FogExp2('#090d16', 0.018);
+    const MAP_SIZE = 2400;
+    const WEAPONS = {
+      FIST: { name: '👊 TINJU', dmg: 20, rate: 400, count: 1, spd: 0, spread: 0 },
+      SHOTGUN: { name: '💥 SHOTGUN', dmg: 22, rate: 700, count: 5, spd: 14, spread: 0.35 },
+      RIFLE: { name: '🔫 AK-47', dmg: 28, rate: 160, count: 1, spd: 18, spread: 0.08 },
+      SNIPER: { name: '🎯 SNIPER AWM', dmg: 85, rate: 1100, count: 1, spd: 26, spread: 0 }
+    };
 
-    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 400);
-    camera.rotation.order = 'YXZ'; // Standar FPS Euler anti-gimbal lock
-    camera.position.set(0, 1.8, 25);
+    // Lingkaran Zona Gas (Storm)
+    const storm = {
+      x: MAP_SIZE / 2,
+      y: MAP_SIZE / 2,
+      radius: MAP_SIZE * 0.7,
+      targetRadius: 100,
+      shrinkSpeed: 0.35
+    };
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    container.appendChild(renderer.domElement);
-
-    // Pencahayaan
-    const ambientLight = new THREE.AmbientLight('#94a3b8', 0.5);
-    scene.add(ambientLight);
-
-    const sunLight = new THREE.DirectionalLight('#fef08a', 1.0);
-    sunLight.position.set(40, 60, 30);
-    sunLight.castShadow = true;
-    sunLight.shadow.mapSize.width = 1024;
-    sunLight.shadow.mapSize.height = 1024;
-    sunLight.shadow.camera.near = 0.5;
-    sunLight.shadow.camera.far = 150;
-    const shadowDist = 45;
-    sunLight.shadow.camera.left = -shadowDist;
-    sunLight.shadow.camera.right = shadowDist;
-    sunLight.shadow.camera.top = shadowDist;
-    sunLight.shadow.camera.bottom = -shadowDist; // FIXED: Nilai negatif mencegah pembagian 0
-    scene.add(sunLight);
-
-    // Lantai
-    const floorGeo = new THREE.PlaneGeometry(160, 160);
-    const floorMat = new THREE.MeshStandardMaterial({ color: '#1e293b', roughness: 0.8 });
-    const floor = new THREE.Mesh(floorGeo, floorMat);
-    floor.rotation.x = -Math.PI / 2;
-    floor.receiveShadow = true;
-    scene.add(floor);
-
-    // Garis Kisi Taktis
-    const grid = new THREE.GridHelper(160, 40, '#06b6d4', '#334155');
-    grid.position.y = 0.02;
-    scene.add(grid);
-
-    // Rintangan Kotak Kontainer
-    const containerColors = ['#ef4444', '#0284c7', '#eab308', '#10b981', '#475569'];
-    function makeBox(x, z, w, h, l, col) {
-      const geo = new THREE.BoxGeometry(w, h, l);
-      const mat = new THREE.MeshStandardMaterial({ color: col, roughness: 0.5 });
-      const m = new THREE.Mesh(geo, mat);
-      m.position.set(x, h / 2, z);
-      m.castShadow = true;
-      m.receiveShadow = true;
-      scene.add(m);
+    class Crate {
+      constructor(x, y) {
+        this.x = x; this.y = y;
+        this.hp = 50;
+        this.dead = false;
+      }
     }
 
-    makeBox(-25, -20, 8, 5, 16, containerColors[0]);
-    makeBox(25, -20, 8, 5, 16, containerColors[1]);
-    makeBox(-25, 20, 8, 5, 16, containerColors[2]);
-    makeBox(25, 20, 8, 5, 16, containerColors[3]);
-    makeBox(0, -35, 16, 5, 8, containerColors[4]);
-    makeBox(0, 35, 16, 5, 8, containerColors[4]);
-    makeBox(-10, 0, 6, 4, 6, '#334155');
-    makeBox(10, 0, 6, 4, 6, '#334155');
-
-    /* ==========================================================
-       3. FIRST-PERSON RIFLE & BIDIKAN ADS
-       ========================================================== */
-    const gunGroup = new THREE.Group();
-    const darkMat = new THREE.MeshStandardMaterial({ color: '#111827', metalness: 0.8, roughness: 0.2 });
-    const gunBody = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.14, 0.8), darkMat);
-    gunGroup.add(gunBody);
-
-    const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.4), darkMat);
-    barrel.rotation.x = Math.PI / 2;
-    barrel.position.set(0, 0.03, -0.55);
-    gunGroup.add(barrel);
-
-    const mag = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.25, 0.12), new THREE.MeshStandardMaterial({ color: '#f59e0b' }));
-    mag.position.set(0, -0.15, -0.05);
-    mag.rotation.x = 0.2;
-    gunGroup.add(mag);
-
-    const defaultGunPos = new THREE.Vector3(0.24, -0.24, -0.5);
-    const adsGunPos = new THREE.Vector3(0, -0.16, -0.38);
-    gunGroup.position.copy(defaultGunPos);
-    camera.add(gunGroup);
-    scene.add(camera);
-
-    const muzzleLight = new THREE.PointLight('#fef08a', 0, 15);
-    muzzleLight.position.set(0, 0.03, -0.8);
-    gunGroup.add(muzzleLight);
-
-    /* ==========================================================
-       4. MODEL PRAJURIT & SISTEM RAGDOLL PHYSICS
-       ========================================================== */
-    const activeRagdolls = [];
-
-    function createSoldierMesh(color = '#0284c7') {
-      const soldier = new THREE.Group();
-      const sMat = new THREE.MeshStandardMaterial({ color, roughness: 0.6 });
-      const gMat = new THREE.MeshStandardMaterial({ color: '#0f172a', roughness: 0.8 });
-
-      // Torso
-      const torso = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.0, 0.4), sMat);
-      torso.position.y = 1.3;
-      torso.castShadow = true;
-      soldier.add(torso);
-
-      // Kepala
-      const head = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.45, 0.45), sMat);
-      head.position.y = 2.05;
-      head.castShadow = true;
-      soldier.add(head);
-
-      // Goggles Kaca Mata
-      const goggles = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.12, 0.2), new THREE.MeshBasicMaterial({ color: '#00f0ff' }));
-      goggles.position.set(0, 2.05, 0.22);
-      soldier.add(goggles);
-
-      // Kaki
-      const legGeo = new THREE.BoxGeometry(0.28, 0.8, 0.28);
-      const lLeg = new THREE.Mesh(legGeo, gMat);
-      lLeg.position.set(-0.25, 0.4, 0);
-      lLeg.castShadow = true;
-      soldier.add(lLeg);
-
-      const rLeg = new THREE.Mesh(legGeo, gMat);
-      rLeg.position.set(0.25, 0.4, 0);
-      rLeg.castShadow = true;
-      soldier.add(rLeg);
-
-      soldier.userData = { head, torso };
-      return soldier;
+    class GroundItem {
+      constructor(x, y, type) {
+        this.x = x; this.y = y;
+        this.type = type; // 'SHOTGUN', 'RIFLE', 'SNIPER', 'MEDKIT', 'ARMOR'
+      }
     }
 
-    // Spawn Ragdoll yang runtuh terpelanting ke tanah saat mati
-    function spawnRagdoll(pos, dir, color = '#ef4444') {
-      const parts = [];
-      const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.6 });
-      const gMat = new THREE.MeshStandardMaterial({ color: '#0f172a' });
-
-      const configs = [
-        { geo: new THREE.BoxGeometry(0.8, 0.9, 0.4), mat: mat, off: new THREE.Vector3(0, 1.3, 0) }, // Torso
-        { geo: new THREE.BoxGeometry(0.45, 0.45, 0.45), mat: mat, off: new THREE.Vector3(0, 2.0, 0) }, // Kepala
-        { geo: new THREE.BoxGeometry(0.25, 0.8, 0.25), mat: gMat, off: new THREE.Vector3(-0.25, 0.4, 0) }, // Kaki Kiri
-        { geo: new THREE.BoxGeometry(0.25, 0.8, 0.25), mat: gMat, off: new THREE.Vector3(0.25, 0.4, 0) } // Kaki Kanan
-      ];
-
-      configs.forEach(c => {
-        const m = new THREE.Mesh(c.geo, c.mat);
-        m.position.copy(pos).add(c.off);
-        m.castShadow = true;
-        scene.add(m);
-
-        parts.push({
-          mesh: m,
-          vel: dir.clone().multiplyScalar(0.18).add(new THREE.Vector3((Math.random() - 0.5) * 0.1, Math.random() * 0.15 + 0.05, (Math.random() - 0.5) * 0.1)),
-          rotVel: new THREE.Vector3((Math.random() - 0.5) * 0.2, (Math.random() - 0.5) * 0.2, (Math.random() - 0.5) * 0.2)
-        });
-      });
-
-      activeRagdolls.push({ parts, life: 250 });
+    class Bush {
+      constructor(x, y) {
+        this.x = x; this.y = y;
+        this.radius = 48;
+      }
     }
 
+    // Inisialisasi Map
+    const crates = [];
+    const items = [];
+    const bushes = [];
+
+    for (let i = 0; i < 45; i++) crates.push(new Crate(Math.random() * (MAP_SIZE - 400) + 200, Math.random() * (MAP_SIZE - 400) + 200));
+    for (let i = 0; i < 35; i++) bushes.push(new Bush(Math.random() * (MAP_SIZE - 300) + 150, Math.random() * (MAP_SIZE - 300) + 150));
+
     /* ==========================================================
-       5. BOT AI & LOGIKA COMBAT
+       3. SURVIVOR ENTITY (PLAYER & AI BOTS)
        ========================================================== */
-    class BotEnemy {
-      constructor(id, name) {
+    class Survivor {
+      constructor(id, name, isBot = false) {
         this.id = id;
         this.name = name;
+        this.isBot = isBot;
+        this.x = Math.random() * (MAP_SIZE - 600) + 300;
+        this.y = Math.random() * (MAP_SIZE - 600) + 300;
+        this.angle = 0;
         this.hp = 100;
+        this.armor = 0;
+        this.kills = 0;
+        this.weapon = 'FIST';
         this.dead = false;
-        this.position = new THREE.Vector3((Math.random() - 0.5) * 70, 0, (Math.random() - 0.5) * 70);
-        this.rotationY = 0;
-        this.mesh = createSoldierMesh('#ef4444');
-        scene.add(this.mesh);
-        this.mesh.position.copy(this.position);
-
-        this.changeDirTimer = 0;
-        this.shootCooldown = 60 + Math.random() * 50;
-      }
-
-      takeDamage(amount, shotDir) {
-        if (this.dead) return;
-        this.hp -= amount;
-        playHitSound();
-
-        if (this.hp <= 0) {
-          this.dead = true;
-          this.mesh.visible = false;
-          spawnRagdoll(this.position, shotDir, '#ef4444');
-          localPlayer.kills++;
-          addKillfeed(localPlayer.name, this.name);
-
-          setTimeout(() => {
-            this.hp = 100;
-            this.dead = false;
-            this.position.set((Math.random() - 0.5) * 70, 0, (Math.random() - 0.5) * 70);
-            this.mesh.position.copy(this.position);
-            this.mesh.visible = true;
-          }, 3500);
-        }
+        this.inBush = false;
+        this.lastShot = 0;
+        this.punchPunch = 0; // Animasi ayunan tinju
+        this.input = { x: 0, y: 0, fire: false };
       }
 
       update() {
         if (this.dead) return;
 
-        const dist = this.position.distanceTo(camera.position);
+        // Kontrol Bot AI
+        if (this.isBot) this.updateBotAI();
 
-        if (dist < 45) {
-          const angle = Math.atan2(camera.position.x - this.position.x, camera.position.z - this.position.z);
-          this.rotationY = angle;
-
-          if (dist > 10) {
-            this.position.x += Math.sin(angle) * 0.08;
-            this.position.z += Math.cos(angle) * 0.08;
-          }
-
-          if (--this.shootCooldown <= 0) {
-            this.shootCooldown = 80 + Math.random() * 40;
-            if (Math.random() < 0.45 && !localPlayer.dead) {
-              localPlayer.takeDamage(15);
-            }
-          }
-        } else {
-          if (--this.changeDirTimer <= 0) {
-            this.changeDirTimer = 100 + Math.random() * 100;
-            this.rotationY = Math.random() * Math.PI * 2;
-          }
-          this.position.x += Math.sin(this.rotationY) * 0.05;
-          this.position.z += Math.cos(this.rotationY) * 0.05;
+        // Gerak Fisika
+        const len = Math.hypot(this.input.x, this.input.y);
+        if (len > 0.1) {
+          const spd = 4.2;
+          this.x += (this.input.x / len) * spd;
+          this.y += (this.input.y / len) * spd;
         }
 
-        this.mesh.position.copy(this.position);
-        this.mesh.rotation.y = this.rotationY;
-      }
-    }
+        // Batas Peta
+        this.x = Math.max(30, Math.min(MAP_SIZE - 30, this.x));
+        this.y = Math.max(30, Math.min(MAP_SIZE - 30, this.y));
 
-    const localPlayer = {
-      name: 'Operative',
-      hp: 100,
-      kills: 0,
-      ammo: 30,
-      dead: false,
-      isADS: false,
-      recoil: 0,
-      takeDamage: function(dmg) {
+        // Cek Zona Badai Gas
+        const distToCenter = Math.hypot(this.x - storm.x, this.y - storm.y);
+        if (distToCenter > storm.radius) {
+          this.takeDamage(0.2, 'STORM');
+        }
+
+        // Cek Sembunyi di Semak
+        this.inBush = bushes.some(b => Math.hypot(b.x - this.x, b.y - this.y) < b.radius);
+
+        // Ambil Item di Lantai
+        for (let i = items.length - 1; i >= 0; i--) {
+          const it = items[i];
+          if (Math.hypot(it.x - this.x, it.y - this.y) < 32) {
+            playSound('loot');
+            if (it.type === 'MEDKIT') this.hp = Math.min(100, this.hp + 50);
+            else if (it.type === 'ARMOR') this.armor = 100;
+            else this.weapon = it.type;
+            items.splice(i, 1);
+          }
+        }
+
+        // Tembak / Pukul
+        const wp = WEAPONS[this.weapon];
+        if (this.input.fire && Date.now() - this.lastShot > wp.rate) {
+          this.attack();
+          this.lastShot = Date.now();
+        }
+      }
+
+      attack() {
+        const wp = WEAPONS[this.weapon];
+        if (this.weapon === 'FIST') {
+          playSound('punch');
+          this.punchPunch = 1;
+          // Cek hantam peti atau musuh dekat
+          crates.forEach(c => {
+            if (!c.dead && Math.hypot(c.x - (this.x + Math.cos(this.angle) * 30), c.y - (this.y + Math.sin(this.angle) * 30)) < 35) {
+              c.hp -= wp.dmg;
+              if (c.hp <= 0) breakCrate(c);
+            }
+          });
+          Object.values(players).forEach(p => {
+            if (p.id !== this.id && !p.dead && Math.hypot(p.x - this.x, p.y - this.y) < 50) {
+              p.takeDamage(wp.dmg, this.name);
+            }
+          });
+        } else {
+          playSound(this.weapon === 'SHOTGUN' ? 'shotgun' : 'rifle');
+          for (let i = 0; i < wp.count; i++) {
+            const spread = (Math.random() - 0.5) * wp.spread;
+            bullets.push(new Bullet(this.id, this.x, this.y, this.angle + spread, wp.spd, wp.dmg));
+          }
+        }
+      }
+
+      takeDamage(amount, attackerName) {
         if (this.dead) return;
-        this.hp -= dmg;
-        document.getElementById('damage-vignette').style.boxShadow = 'inset 0 0 90px rgba(239, 68, 68, 0.8)';
-        setTimeout(() => {
-          document.getElementById('damage-vignette').style.boxShadow = 'inset 0 0 0 rgba(239, 68, 68, 0)';
-        }, 150);
+
+        if (this.armor > 0 && attackerName !== 'STORM') {
+          const absorb = Math.min(this.armor, amount * 0.6);
+          this.armor -= absorb;
+          amount -= absorb;
+        }
+
+        this.hp -= amount;
 
         if (this.hp <= 0) {
           this.dead = true;
-          spawnRagdoll(camera.position, new THREE.Vector3(0, 0, -1), '#0284c7');
-          setTimeout(() => {
-            this.hp = 100;
-            this.dead = false;
-            camera.position.set((Math.random() - 0.5) * 50, 1.8, (Math.random() - 0.5) * 50);
-          }, 3500);
+          aliveCount--;
+          addKillfeed(attackerName, this.name);
+
+          // Drop senjata saat mati
+          if (this.weapon !== 'FIST') items.push(new GroundItem(this.x, this.y, this.weapon));
+          items.push(new GroundItem(this.x + 15, this.y, 'MEDKIT'));
+
+          checkVictory();
         }
       }
-    };
 
-    let bots = [];
-    const raycaster = new THREE.Raycaster();
+      updateBotAI() {
+        // AI lari ke zona aman jika berada di luar
+        const distToCenter = Math.hypot(this.x - storm.x, this.y - storm.y);
+        if (distToCenter > storm.radius * 0.8) {
+          const ang = Math.atan2(storm.y - this.y, storm.x - this.x);
+          this.input.x = Math.cos(ang);
+          this.input.y = Math.sin(ang);
+          this.angle = ang;
+          return;
+        }
 
-    function shoot() {
-      if (localPlayer.ammo <= 0 || localPlayer.dead) return;
-      localPlayer.ammo--;
-      playGunshot();
-
-      localPlayer.recoil = 0.06;
-      muzzleLight.intensity = 2.5;
-      setTimeout(() => muzzleLight.intensity = 0, 40);
-
-      // Raycast ke musuh
-      raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
-      const enemyMeshes = [];
-      const meshMap = new Map();
-
-      bots.forEach(b => {
-        if (!b.dead && b.mesh.visible) {
-          b.mesh.traverse(c => {
-            if (c.isMesh) {
-              enemyMeshes.push(c);
-              meshMap.set(c, b);
-            }
+        // Cari musuh terdekat
+        const targets = Object.values(players).filter(p => p.id !== this.id && !p.dead && !p.inBush);
+        if (targets.length > 0) {
+          let nearest = targets[0];
+          let minDist = 9999;
+          targets.forEach(t => {
+            const d = Math.hypot(t.x - this.x, t.y - this.y);
+            if (d < minDist) { minDist = d; nearest = t; }
           });
-        }
-      });
 
-      const hits = raycaster.intersectObjects(enemyMeshes);
-      if (hits.length > 0) {
-        const victim = meshMap.get(hits[0].object);
-        if (victim) {
-          const isHeadshot = hits[0].point.y > victim.position.y + 1.8;
-          const dmg = isHeadshot ? 100 : 34;
+          const ang = Math.atan2(nearest.y - this.y, nearest.x - this.x);
+          this.angle = ang;
 
-          if (isHeadshot) playHeadshotDing();
-
-          const hm = document.getElementById('hitmarker');
-          hm.style.opacity = '1';
-          setTimeout(() => hm.style.opacity = '0', 80);
-
-          const dir = new THREE.Vector3();
-          camera.getWorldDirection(dir);
-          victim.takeDamage(dmg, dir);
+          if (minDist < 300) {
+            this.input.x = this.weapon === 'FIST' ? Math.cos(ang) : -Math.cos(ang) * 0.4;
+            this.input.y = this.weapon === 'FIST' ? Math.sin(ang) : -Math.sin(ang) * 0.4;
+            this.input.fire = Math.random() < 0.08;
+          } else {
+            this.input.x = Math.cos(ang);
+            this.input.y = Math.sin(ang);
+            this.input.fire = false;
+          }
         }
       }
     }
 
-    function addKillfeed(k, v) {
-      const box = document.getElementById('killfeed-box');
-      const d = document.createElement('div');
-      d.className = 'kill-msg';
-      d.innerHTML = `<strong>${k}</strong> ⚡ <em>${v}</em>`;
-      box.prepend(d);
-      setTimeout(() => d.remove(), 4000);
-    }
-
-    /* ==========================================================
-       6. KONTROL MOUSE, KEYBOARD & TOUCH
-       ========================================================== */
-    const keys = {};
-    let isMouseLocked = false;
-    let yaw = 0;
-    let pitch = 0;
-
-    window.addEventListener('keydown', e => {
-      keys[e.key.toLowerCase()] = true;
-      if (e.key.toLowerCase() === 'r') localPlayer.ammo = 30; // Reload
-    });
-    window.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
-
-    window.addEventListener('mousedown', e => {
-      if (!isMouseLocked && !('ontouchstart' in window)) {
-        document.body.requestPointerLock?.();
-      }
-      if (e.button === 0) shoot();
-      if (e.button === 2) localPlayer.isADS = true;
-    });
-
-    window.addEventListener('mouseup', e => {
-      if (e.button === 2) localPlayer.isADS = false;
-    });
-
-    window.addEventListener('contextmenu', e => e.preventDefault());
-
-    document.addEventListener('pointerlockchange', () => {
-      isMouseLocked = (document.pointerLockElement === document.body);
-      const hint = document.getElementById('desktop-hint');
-      if (isMouseLocked) hint.classList.add('hidden');
-      else if (gameState === 'COMBAT') hint.classList.remove('hidden');
-    });
-
-    window.addEventListener('mousemove', e => {
-      if (!isMouseLocked) return;
-      const sens = localPlayer.isADS ? 0.0014 : 0.0024;
-      yaw -= e.movementX * sens;
-      pitch -= e.movementY * sens;
-      pitch = Math.max(-Math.PI / 2.3, Math.min(Math.PI / 2.3, pitch));
-      camera.rotation.set(pitch, yaw, 0);
-    });
-
-    // Kontrol Sentuh Mobile (HP)
-    let touchStartX = 0, touchStartY = 0;
-    window.addEventListener('touchstart', e => {
-      if (e.touches[0].clientX > window.innerWidth / 2) {
-        touchStartX = e.touches[0].clientX;
-        touchStartY = e.touches[0].clientY;
-      }
-    });
-
-    window.addEventListener('touchmove', e => {
-      for (let t of e.touches) {
-        if (t.clientX > window.innerWidth / 2) {
-          const dx = t.clientX - touchStartX;
-          const dy = t.clientY - touchStartY;
-          yaw -= dx * 0.004;
-          pitch -= dy * 0.004;
-          pitch = Math.max(-Math.PI / 2.3, Math.min(Math.PI / 2.3, pitch));
-          camera.rotation.set(pitch, yaw, 0);
-          touchStartX = t.clientX;
-          touchStartY = t.clientY;
-        }
-      }
-    });
-
-    document.getElementById('btn-mobile-fire').addEventListener('touchstart', e => { e.preventDefault(); shoot(); });
-    document.getElementById('btn-mobile-ads').addEventListener('touchstart', e => {
-      e.preventDefault();
-      localPlayer.isADS = !localPlayer.isADS;
-    });
-
-    /* ==========================================================
-       7. NAVIGASI MENU & PERBAIKAN BUG TRANSISI
-       ========================================================== */
-    let gameState = 'MENU';
-
-    function startGameplay() {
-      gameState = 'COMBAT';
-      // Sembunyikan SEMUA overlay menu/lobby
-      document.getElementById('menu-screen').classList.add('hidden');
-      document.getElementById('lobby-screen').classList.add('hidden');
-      document.getElementById('hud').classList.remove('hidden');
-      document.getElementById('crosshair').classList.remove('hidden');
-
-      if ('ontouchstart' in window) {
-        document.getElementById('mobile-controls').classList.remove('hidden');
-      } else {
-        document.getElementById('desktop-hint').classList.remove('hidden');
-      }
-    }
-
-    // Tombol Mode Solo (Langsung Main)
-    document.getElementById('btn-solo').onclick = () => {
-      initAudio();
-      localPlayer.name = document.getElementById('nickname-input').value.trim() || 'Operative';
-
-      // Bersihkan bot lama jika ada & buat 7 bot baru
-      bots.forEach(b => scene.remove(b.mesh));
-      bots = [];
-      for (let i = 1; i <= 7; i++) {
-        bots.push(new BotEnemy('bot_' + i, `Bot #${i}`));
+    class Bullet {
+      constructor(ownerId, x, y, angle, speed, dmg) {
+        this.ownerId = ownerId;
+        this.x = x + Math.cos(angle) * 25;
+        this.y = y + Math.sin(angle) * 25;
+        this.vx = Math.cos(angle) * speed;
+        this.vy = Math.sin(angle) * speed;
+        this.dmg = dmg;
+        this.dead = false;
+        this.life = 45;
       }
 
-      startGameplay();
-    };
+      update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        if (--this.life <= 0) this.dead = true;
 
-    // Host Room
-    document.getElementById('btn-host').onclick = () => {
-      initAudio();
-      localPlayer.name = document.getElementById('nickname-input').value.trim() || 'Operative';
-      const code = 'OPS' + Math.floor(1000 + Math.random() * 9000);
-
-      document.getElementById('display-room-id').innerText = code;
-      document.getElementById('menu-screen').classList.add('hidden');
-      document.getElementById('lobby-screen').classList.remove('hidden');
-      document.getElementById('btn-start-match').classList.remove('hidden');
-      document.getElementById('host-wait-msg').classList.add('hidden');
-      document.getElementById('lobby-roster').innerHTML = `<div>⚡ <strong>${localPlayer.name} (Host)</strong></div>`;
-    };
-
-    // Join Room
-    document.getElementById('btn-join').onclick = () => {
-      initAudio();
-      const code = document.getElementById('room-code-input').value.trim();
-      if (!code) return alert("Masukkan Kode Room!");
-      localPlayer.name = document.getElementById('nickname-input').value.trim() || 'Operative';
-
-      document.getElementById('display-room-id').innerText = code.toUpperCase();
-      document.getElementById('menu-screen').classList.add('hidden');
-      document.getElementById('lobby-screen').classList.remove('hidden');
-      document.getElementById('lobby-roster').innerHTML = `<div>⚡ <strong>${localPlayer.name}</strong></div>`;
-    };
-
-    document.getElementById('btn-start-match').onclick = () => {
-      // Buat bot pendukung agar arena tetap seru
-      for (let i = 1; i <= 6; i++) {
-        bots.push(new BotEnemy('bot_' + i, `Target #${i}`));
-      }
-      startGameplay();
-    };
-
-    /* ==========================================================
-       8. LOOP UTAMA GAME & UPDATE FISIKA RAGDOLL
-       ========================================================== */
-    function animate() {
-      requestAnimationFrame(animate);
-
-      // Gerak Karakter (WASD)
-      if (gameState === 'COMBAT' && !localPlayer.dead) {
-        const moveVec = new THREE.Vector3();
-        if (keys['w']) moveVec.z -= 1;
-        if (keys['s']) moveVec.z += 1;
-        if (keys['a']) moveVec.x -= 1;
-        if (keys['d']) moveVec.x += 1;
-
-        if (moveVec.lengthSq() > 0) {
-          moveVec.normalize();
-          moveVec.applyEuler(new THREE.Euler(0, yaw, 0));
-          const spd = localPlayer.isADS ? 0.08 : 0.16;
-          camera.position.addScaledVector(moveVec, spd);
-        }
-
-        // Batasi Pemain Tetap di Dalam Arena
-        camera.position.x = Math.max(-75, Math.min(75, camera.position.x));
-        camera.position.z = Math.max(-75, Math.min(75, camera.position.z));
-        camera.position.y = 1.8;
-      }
-
-      // Animasi Senapan (ADS & Recoil Kick)
-      const targetPos = localPlayer.isADS ? adsGunPos : defaultGunPos;
-      gunGroup.position.lerp(targetPos, 0.2);
-
-      if (localPlayer.recoil > 0) {
-        gunGroup.position.z += localPlayer.recoil;
-        localPlayer.recoil *= 0.6;
-      }
-
-      // Update AI Bot
-      bots.forEach(b => b.update());
-
-      // Update Fisika Ragdoll (Gravitasi & Runtuh di Lantai)
-      for (let i = activeRagdolls.length - 1; i >= 0; i--) {
-        const rag = activeRagdolls[i];
-        rag.parts.forEach(p => {
-          p.vel.y -= 0.012; // Gravitasi
-          p.mesh.position.add(p.vel);
-          p.mesh.rotation.x += p.rotVel.x;
-          p.mesh.rotation.y += p.rotVel.y;
-          p.mesh.rotation.z += p.rotVel.z;
-
-          if (p.mesh.position.y <= 0.2) {
-            p.mesh.position.y = 0.2;
-            p.vel.set(0, 0, 0); // Berhenti membal di lantai
-            p.rotVel.set(0, 0, 0);
+        // Cek Kena Peti
+        crates.forEach(c => {
+          if (!c.dead && Math.hypot(c.x - this.x, c.y - this.y) < 25) {
+            c.hp -= this.dmg;
+            this.dead = true;
+            if (c.hp <= 0) breakCrate(c);
           }
         });
 
-        if (--rag.life <= 0) {
-          rag.parts.forEach(p => scene.remove(p.mesh));
-          activeRagdolls.splice(i, 1);
-        }
+        // Cek Kena Pemain
+        Object.values(players).forEach(p => {
+          if (p.id !== this.ownerId && !p.dead && Math.hypot(p.x - this.x, p.y - this.y) < 22) {
+            const killer = players[this.ownerId] ? players[this.ownerId].name : 'Peluru';
+            p.takeDamage(this.dmg, killer);
+            if (p.dead && players[this.ownerId]) players[this.ownerId].kills++;
+            this.dead = true;
+          }
+        });
       }
-
-      // Update HUD
-      if (gameState === 'COMBAT') {
-        document.getElementById('hud-hp').innerText = Math.max(0, localPlayer.hp);
-        document.getElementById('hud-ammo').innerHTML = `${localPlayer.ammo} <span style="font-size:1rem; color:#64748b;">/ ∞</span>`;
-        document.getElementById('hud-score').innerText = `ELIMINASI: ${localPlayer.kills}`;
-      }
-
-      renderer.render(scene, camera);
     }
 
-    window.addEventListener('resize', () => {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
+    function breakCrate(c) {
+      c.dead = true;
+      const lootTypes = ['SHOTGUN', 'RIFLE', 'SNIPER', 'MEDKIT', 'ARMOR'];
+      const pick = lootTypes[Math.floor(Math.random() * lootTypes.length)];
+      items.push(new GroundItem(c.x, c.y, pick));
+    }
+
+    let players = {};
+    let bullets = [];
+    let aliveCount = 8;
+    let myPlayerId = 'p_' + Math.random().toString(36).substr(2, 6);
+    let myName = 'Survivor';
+    let gameState = 'MENU';
+
+    function addKillfeed(k, v) {
+      const kf = document.getElementById('killfeed');
+      const d = document.createElement('div');
+      d.className = 'kill-item';
+      d.innerHTML = `<strong>${k}</strong> 💥 <em>${v}</em>`;
+      kf.prepend(d);
+      setTimeout(() => d.remove(), 4000);
+    }
+
+    function checkVictory() {
+      const alivePlayers = Object.values(players).filter(p => !p.dead);
+      if (alivePlayers.length === 1 && gameState === 'INGAME') {
+        gameState = 'OVER';
+        confetti({ particleCount: 150, spread: 80 });
+        const winner = alivePlayers[0];
+        document.getElementById('win-title').innerText = winner.id === myPlayerId ? 'WINNER WINNER!' : 'MATCH SELESAI!';
+        document.getElementById('win-sub').innerText = `JUARA 1: ${winner.name} 👑`;
+        document.getElementById('winner-screen').classList.remove('hidden');
+      }
+    }
+
+    /* ==========================================================
+       4. INPUT KEYBOARD, MOUSE & TOUCH
+       ========================================================== */
+    const keys = {};
+    let mouse = { x: 0, y: 0 };
+
+    window.addEventListener('keydown', e => keys[e.key.toLowerCase()] = true);
+    window.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
+    window.addEventListener('mousemove', e => { mouse.x = e.clientX; mouse.y = e.clientY; });
+    window.addEventListener('mousedown', () => { if (players[myPlayerId]) players[myPlayerId].input.fire = true; });
+    window.addEventListener('mouseup', () => { if (players[myPlayerId]) players[myPlayerId].input.fire = false; });
+
+    // Mobile Virtual Joysticks
+    function setupJoystick(joyId, nubId, cb) {
+      const joy = document.getElementById(joyId);
+      const nub = document.getElementById(nubId);
+      let tId = null, center = { x: 0, y: 0 };
+
+      joy.addEventListener('touchstart', e => {
+        const t = e.changedTouches[0];
+        tId = t.identifier;
+        const rect = joy.getBoundingClientRect();
+        center = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+      });
+
+      joy.addEventListener('touchmove', e => {
+        for (let t of e.changedTouches) {
+          if (t.identifier === tId) {
+            let dx = t.clientX - center.x;
+            let dy = t.clientY - center.y;
+            const dist = Math.hypot(dx, dy);
+            const max = 40;
+            if (dist > max) { dx = (dx / dist) * max; dy = (dy / dist) * max; }
+            nub.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+            cb(dx / max, dy / max);
+          }
+        }
+      });
+
+      const end = () => {
+        tId = null;
+        nub.style.transform = `translate(-50%, -50%)`;
+        cb(0, 0);
+      };
+      joy.addEventListener('touchend', end);
+      joy.addEventListener('touchcancel', end);
+    }
+
+    setupJoystick('move-joy', 'move-nub', (x, y) => {
+      if (players[myPlayerId]) { players[myPlayerId].input.x = x; players[myPlayerId].input.y = y; }
     });
 
-    animate();
+    setupJoystick('aim-joy', 'aim-nub', (x, y) => {
+      if (players[myPlayerId]) {
+        if (Math.hypot(x, y) > 0.3) {
+          players[myPlayerId].angle = Math.atan2(y, x);
+          players[myPlayerId].input.fire = true;
+        } else {
+          players[myPlayerId].input.fire = false;
+        }
+      }
+    });
+
+    /* ==========================================================
+       5. MENU, LOBBY & PERJALANAN GAME
+       ========================================================== */
+    function enterBattle() {
+      gameState = 'INGAME';
+      aliveCount = Object.keys(players).length;
+      document.getElementById('menu-screen').classList.add('hidden');
+      document.getElementById('lobby-screen').classList.add('hidden');
+      document.getElementById('hud').classList.remove('hidden');
+      if ('ontouchstart' in window) document.getElementById('touch-controls').classList.remove('hidden');
+    }
+
+    document.getElementById('btn-solo').onclick = () => {
+      initAudio();
+      myName = document.getElementById('nickname').value.trim() || 'Survivor';
+      players[myPlayerId] = new Survivor(myPlayerId, myName);
+
+      for (let i = 1; i <= 7; i++) {
+        const bId = 'bot_' + i;
+        players[bId] = new Survivor(bId, `Bot #${i}`, true);
+      }
+      enterBattle();
+    };
+
+    document.getElementById('btn-host').onclick = () => {
+      initAudio();
+      myName = document.getElementById('nickname').value.trim() || 'Survivor';
+      const code = 'PUBG' + Math.floor(1000 + Math.random() * 9000);
+      players[myPlayerId] = new Survivor(myPlayerId, myName);
+
+      document.getElementById('room-id-txt').innerText = code;
+      document.getElementById('menu-screen').classList.add('hidden');
+      document.getElementById('lobby-screen').classList.remove('hidden');
+      document.getElementById('btn-start').classList.remove('hidden');
+      document.getElementById('wait-msg').classList.add('hidden');
+      document.getElementById('roster-box').innerHTML = `<div>⚡ <strong>${myName} (Host)</strong></div>`;
+    };
+
+    document.getElementById('btn-join').onclick = () => {
+      initAudio();
+      const code = document.getElementById('room-input').value.trim();
+      if (!code) return alert("Masukkan Kode Room!");
+      myName = document.getElementById('nickname').value.trim() || 'Survivor';
+
+      document.getElementById('room-id-txt').innerText = code.toUpperCase();
+      document.getElementById('menu-screen').classList.add('hidden');
+      document.getElementById('lobby-screen').classList.remove('hidden');
+      document.getElementById('roster-box').innerHTML = `<div>⚡ <strong>${myName}</strong></div>`;
+    };
+
+    document.getElementById('btn-start').onclick = () => {
+      // Isi slot kosong dengan Bot agar total 8 pemain
+      for (let i = Object.keys(players).length + 1; i <= 8; i++) {
+        const bId = 'bot_' + i;
+        players[bId] = new Survivor(bId, `Target #${i}`, true);
+      }
+      enterBattle();
+    };
+
+    /* ==========================================================
+       6. RENDERING 2D CANVAS (PULAU, TANK, ITEM, & DARAH)
+       ========================================================== */
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    function render() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      const me = players[myPlayerId] || { x: MAP_SIZE / 2, y: MAP_SIZE / 2, hp: 100, armor: 0, kills: 0 };
+
+      // Kontrol Desktop (WASD & Mouse)
+      if (gameState === 'INGAME' && !('ontouchstart' in window) && players[myPlayerId]) {
+        players[myPlayerId].input.x = (keys['d'] ? 1 : 0) - (keys['a'] ? 1 : 0);
+        players[myPlayerId].input.y = (keys['s'] ? 1 : 0) - (keys['w'] ? 1 : 0);
+        players[myPlayerId].angle = Math.atan2(mouse.y - canvas.height / 2, mouse.x - canvas.width / 2);
+      }
+
+      // Update Logika Game
+      if (gameState === 'INGAME') {
+        Object.values(players).forEach(p => p.update());
+
+        // Update Peluru
+        for (let i = bullets.length - 1; i >= 0; i--) {
+          bullets[i].update();
+          if (bullets[i].dead) bullets.splice(i, 1);
+        }
+
+        // Zona Gas Mengecil
+        if (storm.radius > storm.targetRadius) storm.radius -= storm.shrinkSpeed;
+
+        // Update HUD
+        document.getElementById('hp-bar').style.width = `${Math.max(0, me.hp)}%`;
+        document.getElementById('armor-bar').style.width = `${Math.max(0, me.armor)}%`;
+        document.getElementById('alive-txt').innerText = `ALIVE: ${aliveCount}`;
+        document.getElementById('kill-txt').innerText = `KILLS: ${me.kills}`;
+        document.getElementById('weapon-badge').innerText = `SENJATA: ${WEAPONS[me.weapon]?.name || 'TINJU'}`;
+        document.getElementById('zone-badge').innerText = `ZONA: ${Math.round((storm.radius / (MAP_SIZE * 0.7)) * 100)}%`;
+      }
+
+      ctx.save();
+      // Kamera Mengikuti Pemain
+      ctx.translate(-me.x + canvas.width / 2, -me.y + canvas.height / 2);
+
+      // 1. Gambar Daratan Pulau
+      ctx.fillStyle = '#16a34a';
+      ctx.fillRect(0, 0, MAP_SIZE, MAP_SIZE);
+
+      // Grid Tanah
+      ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+      ctx.lineWidth = 2;
+      for (let x = 0; x < MAP_SIZE; x += 100) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, MAP_SIZE); ctx.stroke(); }
+      for (let y = 0; y < MAP_SIZE; y += 100) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(MAP_SIZE, y); ctx.stroke(); }
+
+      // 2. Gambar Peti Kayu (Loot Crates)
+      crates.forEach(c => {
+        if (c.dead) return;
+        ctx.fillStyle = '#854d0e';
+        ctx.fillRect(c.x - 18, c.y - 18, 36, 36);
+        ctx.strokeStyle = '#451a03';
+        ctx.lineWidth = 3;
+        ctx.strokeRect(c.x - 18, c.y - 18, 36, 36);
+        ctx.fillStyle = '#facc15';
+        ctx.font = 'bold 12px sans-serif';
+        ctx.fillText('CRATE', c.x - 16, c.y + 4);
+      });
+
+      // 3. Gambar Item di Lantai
+      items.forEach(it => {
+        ctx.beginPath();
+        ctx.arc(it.x, it.y, 14, 0, Math.PI * 2);
+        ctx.fillStyle = it.type === 'MEDKIT' ? '#22c55e' : (it.type === 'ARMOR' ? '#0284c7' : '#f59e0b');
+        ctx.fill();
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 10px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(it.type.substring(0, 4), it.x, it.y + 3);
+      });
+
+      // 4. Gambar Peluru
+      ctx.fillStyle = '#fef08a';
+      bullets.forEach(b => {
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, 3.5, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      // 5. Gambar Karakter Pemain & Bot
+      Object.values(players).forEach(p => {
+        if (p.dead) return;
+        if (p.inBush && p.id !== myPlayerId) return; // Tidak terlihat jika di semak!
+
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.angle);
+
+        // Tangan / Senjata
+        ctx.fillStyle = '#fca5a5';
+        if (p.weapon === 'FIST') {
+          const punchOff = p.punchPunch ? 8 : 0;
+          ctx.beginPath(); ctx.arc(14 + punchOff, -12, 6, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc(14, 12, 6, 0, Math.PI * 2); ctx.fill();
+          if (p.punchPunch) p.punchPunch = 0;
+        } else {
+          ctx.fillStyle = '#1e293b';
+          ctx.fillRect(10, -3, 20, 6); // Laras Senjata
+        }
+
+        // Badan Bulat
+        ctx.fillStyle = p.armor > 0 ? '#0284c7' : '#eab308';
+        ctx.beginPath();
+        ctx.arc(0, 0, 18, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+
+        ctx.restore();
+
+        // Nama & HP Bar
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 11px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(p.name, p.x, p.y - 26);
+      });
+
+      // 6. Gambar Semak-Semak (Bisa untuk Sembunyi)
+      bushes.forEach(b => {
+        ctx.fillStyle = 'rgba(21, 128, 61, 0.85)';
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      // 7. Gambar Zona Gas (Storm)
+      ctx.strokeStyle = 'rgba(239, 68, 68, 0.8)';
+      ctx.lineWidth = 14;
+      ctx.beginPath();
+      ctx.arc(storm.x, storm.y, storm.radius, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.restore();
+
+      requestAnimationFrame(render);
+    }
+
+    render();
   </script>
 </body>
 </html>
